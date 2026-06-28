@@ -9,17 +9,13 @@
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{
-    /* light-blue palette sampled from the brief; text anchored in deep navy of the same hue so it stays readable */
     --paper:#e9f1fd; --card:#ffffff;
     --ink:#1c2e45; --ink-soft:#3f5169; --muted:#50647a;
     --line:#cdddf1;
     --blue:#9ccbff; --blue-deep:#2a66ac; --blue-soft:#e1ecfe;
-    /* success: sealed file, made it */
-    --green:#5a93d6; --green-deep:#2a66ac; --green-soft:#e1ecfe;
-    /* soon / running low */
-    --coral:#4f9bf2; --coral-deep:#1f6fd0;
-    /* missed */
-    --rose:#aeb9c7; --rose-deep:#5c6b7d; --rose-tint:#f0f3f8;
+    --ok:#5a93d6; --ok-deep:#2a66ac; --ok-soft:#e1ecfe;
+    --warn:#4f9bf2; --warn-deep:#1f6fd0;
+    --miss:#aeb9c7; --miss-deep:#5c6b7d; --miss-tint:#f0f3f8;
     --display:"Quicksand",system-ui,sans-serif;
     --body:"Nunito",system-ui,sans-serif;
     --radius:16px;
@@ -43,7 +39,7 @@
   .brand p{margin:3px 0 0; color:var(--muted); font-size:14px}
   .conn{display:flex; align-items:center; gap:10px; flex-shrink:0; flex-wrap:wrap; justify-content:flex-end}
   .dot{width:9px; height:9px; border-radius:50%; background:#cfd3df}
-  .dot.on{background:var(--green); box-shadow:0 0 0 4px var(--green-soft)}
+  .dot.on{background:var(--ok); box-shadow:0 0 0 4px var(--ok-soft)}
   .who{font-size:13px; color:var(--muted)}
   .rule{height:1px; background:var(--line); margin:22px 0 30px}
 
@@ -81,9 +77,9 @@
     background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
     overflow:hidden; border-left:4px solid var(--line); box-shadow:var(--shadow);
   }
-  .card.soon{border-left-color:var(--coral)}
-  .card.done{border-left-color:var(--green)}
-  .card.missed{border-left-color:var(--rose); background:var(--rose-tint)}
+  .card.soon{border-left-color:var(--warn)}
+  .card.done{border-left-color:var(--ok)}
+  .card.missed{border-left-color:var(--miss); background:var(--miss-tint)}
   .card-head{padding:20px 22px; display:flex; justify-content:space-between; gap:18px; align-items:flex-start}
   .card-head .title{font-family:var(--display); font-weight:600; font-size:18px; margin:0; color:var(--ink)}
   .card-head .desc{color:var(--muted); font-size:13px; margin:7px 0 0; white-space:pre-wrap}
@@ -91,20 +87,20 @@
   .count{text-align:right; white-space:nowrap; min-width:120px}
   .count small{display:block; font-size:10px; letter-spacing:.14em; color:var(--muted); text-transform:uppercase; margin-bottom:4px; font-weight:700}
   .count .cval{font-family:var(--display); font-weight:700; font-size:23px; color:var(--ink); font-variant-numeric:tabular-nums}
-  .count.soon .cval{color:var(--coral-deep)}
-  .count.open .cval{color:var(--green-deep); font-size:21px}
-  .count.done .cval{color:var(--green-deep); font-size:16px; font-weight:600}
-  .count.missed .cval{color:var(--rose-deep); font-size:14px; font-weight:600; white-space:normal; display:inline-block; max-width:230px; line-height:1.4}
+  .count.soon .cval{color:var(--warn-deep)}
+  .count.open .cval{color:var(--ok-deep); font-size:21px}
+  .count.done .cval{color:var(--ok-deep); font-size:16px; font-weight:600}
+  .count.missed .cval{color:var(--miss-deep); font-size:14px; font-weight:600; white-space:normal; display:inline-block; max-width:230px; line-height:1.4}
 
   .files{border-top:1px solid var(--line)}
   .file{display:flex; align-items:center; gap:13px; padding:13px 22px; border-bottom:1px solid var(--line)}
   .file:last-child{border-bottom:none}
   .file.empty-row{color:var(--muted); font-size:13px; padding:15px 22px}
-  .lock{flex-shrink:0; color:var(--green-deep); display:flex}
+  .lock{flex-shrink:0; color:var(--ok-deep); display:flex}
   .file .fmeta{flex:1; min-width:0}
   .file .fname{font-size:14px; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .file .fsub{font-size:12px; color:var(--muted); margin-top:2px}
-  .file .ver{color:var(--green-deep); font-weight:600}
+  .file .ver{color:var(--ok-deep); font-weight:600}
   .file .factions{display:flex; gap:15px; align-items:center; flex-shrink:0}
 
   .card-foot{padding:13px 22px; display:flex; justify-content:flex-end}
@@ -125,7 +121,7 @@
     padding:12px 17px; border-radius:12px; font-size:13px; opacity:0; pointer-events:none;
     transition:.25s; max-width:90vw; box-shadow:0 10px 34px rgba(70,70,95,.16)}
   #toast.show{opacity:1; transform:translateX(-50%) translateY(0)}
-  #toast.err{border-color:var(--rose)}
+  #toast.err{border-color:var(--miss)}
 
   .hidden{display:none !important}
 
@@ -151,11 +147,6 @@
     </div>
   </header>
   <div class="rule"></div>
-
-  <div id="setupCard" class="state-card hidden">
-    <h2>One setup step left</h2>
-    <p>Open <code>index.html</code> and paste your Google OAuth Client ID into the <code>CLIENT_ID</code> value near the top of the script. The README has the two-minute walkthrough.</p>
-  </div>
 
   <div id="signedOut" class="state-card hidden">
     <h2>Connect to begin</h2>
@@ -192,10 +183,7 @@
 
 <script src="https://accounts.google.com/gsi/client" onload="onGisLoaded()" async defer></script>
 <script>
-/* ============================================================
-   CONFIG - paste your OAuth Client ID here (see README)
-   ============================================================ */
-const CLIENT_ID = "PASTE_YOUR_OAUTH_CLIENT_ID_HERE";
+const CLIENT_ID = "156129012356-8dtp9j5sia19cs97hiob5fbrlu1psqgb.apps.googleusercontent.com";
 
 const SCOPE = "https://www.googleapis.com/auth/drive.file";
 const ROOT_FOLDER_NAME = "Deadline Vault";
@@ -206,8 +194,6 @@ const MISSED_LINES = [
   "Deadline came and went. It happens to the best of us. \u{1F972}",
   "Empty-handed at the buzzer. Be kind to yourself, then go again. \u2601\uFE0F",
   "This one slipped by. The next deadline is a clean slate. \u{1F331}",
-  "No submission this time. You're still alright. \u{1F375}",
-  "Didn't make this one. Not a loser, just a human with a calendar. \u{1FAE7}",
   "Missed it. Deep breath. Tomorrow is a fresh page. \u{1F4A4}",
 ];
 
@@ -216,7 +202,6 @@ let tokenClient = null, accessToken = null, tokenExpiresAt = 0;
 let pendingResolve = null, pendingReject = null;
 
 function onGisLoaded(){
-  if (CLIENT_ID.startsWith("PASTE_")){ show("setupCard"); return; }
   tokenClient = google.accounts.oauth2.initTokenClient({
     client_id: CLIENT_ID,
     scope: SCOPE,
@@ -489,9 +474,8 @@ function countBlock(d, st){
       '<small>Status</small><span class="cval">' + esc(missedLine(d.id)) + '</span></div>';
   }
   if (st === "submitted_closed"){
-    const made = d.files.some(f => new Date(f.createdAt) <= new Date(d.deadline));
     return '<div class="count done" data-card-count="' + d.id + '" data-state="submitted_closed">' +
-      '<small>Status</small><span class="cval">' + (made ? "Made it \u2713" : "Submitted late \u2713") + '</span></div>';
+      '<small>Status</small><span class="cval">Made it \u2713</span></div>';
   }
   if (st === "submitted_open"){
     return '<div class="count open" data-card-count="' + d.id + '" data-state="submitted_open">' +
@@ -593,7 +577,7 @@ function setConnected(){
 
 /* ---------- utils ---------- */
 function el(id){ return document.getElementById(id); }
-function show(id){ ["setupCard","signedOut","app"].forEach(x => el(x).classList.toggle("hidden", x !== id)); }
+function show(id){ ["signedOut","app"].forEach(x => el(x).classList.toggle("hidden", x !== id)); }
 function lock(btn, label){ if(!btn) return; if(btn.dataset.prev === undefined) btn.dataset.prev = btn.textContent; btn.textContent = label; btn.disabled = true; }
 function unlock(btn, label){ if(!btn) return; btn.textContent = label || btn.dataset.prev || "Done"; btn.disabled = false; delete btn.dataset.prev; }
 function esc(s){ return String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c])); }
@@ -609,7 +593,7 @@ function fmtDate(iso){
 }
 function remaining(iso){
   let ms = new Date(iso) - Date.now();
-  const over = ms < 0; if (over) ms = -ms;
+  if (ms < 0) ms = 0;
   const s = Math.floor(ms / 1000);
   const d = Math.floor(s / 86400);
   const h = Math.floor((s % 86400) / 3600);
@@ -617,7 +601,6 @@ function remaining(iso){
   const sec = s % 60;
   const pad = n => String(n).padStart(2, "0");
   const body = (d > 0 ? d + "d " : "") + pad(h) + ":" + pad(m) + ":" + pad(sec);
-  if (over) return { text: "+" + body, state: "over" };
   return { text: body, state: (ms < 86400000 ? "soon" : "ok") };
 }
 let toastTimer;
