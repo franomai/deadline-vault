@@ -1,0 +1,638 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Deadline Vault</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    /* light-blue palette sampled from the brief; text anchored in deep navy of the same hue so it stays readable */
+    --paper:#e9f1fd; --card:#ffffff;
+    --ink:#1c2e45; --ink-soft:#3f5169; --muted:#50647a;
+    --line:#cdddf1;
+    --blue:#9ccbff; --blue-deep:#2a66ac; --blue-soft:#e1ecfe;
+    /* success: sealed file, made it */
+    --green:#5a93d6; --green-deep:#2a66ac; --green-soft:#e1ecfe;
+    /* soon / running low */
+    --coral:#4f9bf2; --coral-deep:#1f6fd0;
+    /* missed */
+    --rose:#aeb9c7; --rose-deep:#5c6b7d; --rose-tint:#f0f3f8;
+    --display:"Quicksand",system-ui,sans-serif;
+    --body:"Nunito",system-ui,sans-serif;
+    --radius:16px;
+    --shadow:0 3px 14px rgba(30,60,110,.08), 0 1px 3px rgba(30,60,110,.06);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:
+      radial-gradient(1200px 700px at 85% -15%, #d6e6ff 0%, transparent 55%),
+      radial-gradient(900px 600px at 5% 110%, #e3eeff 0%, transparent 50%),
+      var(--paper);
+    color:var(--ink-soft); font-family:var(--body); line-height:1.55;
+    -webkit-font-smoothing:antialiased; min-height:100vh;
+  }
+  .wrap{max-width:760px; margin:0 auto; padding:36px 20px 110px}
+
+  /* header */
+  .top{display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:6px}
+  .brand h1{font-family:var(--display); font-weight:700; font-size:23px; letter-spacing:.01em; margin:0; color:var(--ink)}
+  .brand p{margin:3px 0 0; color:var(--muted); font-size:14px}
+  .conn{display:flex; align-items:center; gap:10px; flex-shrink:0; flex-wrap:wrap; justify-content:flex-end}
+  .dot{width:9px; height:9px; border-radius:50%; background:#cfd3df}
+  .dot.on{background:var(--green); box-shadow:0 0 0 4px var(--green-soft)}
+  .who{font-size:13px; color:var(--muted)}
+  .rule{height:1px; background:var(--line); margin:22px 0 30px}
+
+  /* buttons */
+  button{font-family:var(--body); cursor:pointer; border-radius:11px; border:1px solid transparent; transition:.15s}
+  button:focus-visible{outline:2px solid var(--blue-deep); outline-offset:2px}
+  .btn-primary{background:var(--blue-deep); color:#fff; font-weight:700; padding:11px 18px; font-size:14px}
+  .btn-primary:hover{filter:brightness(1.08)}
+  .btn-ghost{background:var(--card); color:var(--ink-soft); border-color:var(--line); padding:8px 14px; font-size:13px; font-weight:600}
+  .btn-ghost:hover{border-color:#dcd4c4; background:#fffefb}
+  .btn-link{background:none; border:none; color:var(--blue-deep); padding:0; font-size:13px; font-weight:600; text-decoration:none; font-family:var(--body)}
+  .btn-link:hover{text-decoration:underline}
+  button:disabled{opacity:.55; cursor:default}
+
+  /* panels */
+  .panel{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:22px; box-shadow:var(--shadow)}
+  .panel h2{font-family:var(--display); font-weight:600; font-size:16px; margin:0 0 18px; color:var(--ink)}
+
+  /* form */
+  .field{margin-bottom:15px}
+  .field label{display:block; font-size:13px; color:var(--muted); margin-bottom:7px; font-weight:600}
+  .field input, .field textarea{
+    width:100%; background:#fffefb; border:1px solid var(--line); color:var(--ink);
+    border-radius:11px; padding:11px 13px; font-family:var(--body); font-size:14px;
+  }
+  .field input:focus, .field textarea:focus{outline:none; border-color:var(--blue); box-shadow:0 0 0 3px var(--blue-soft)}
+  .field textarea{resize:vertical; min-height:56px}
+  .field input[type=datetime-local]{color-scheme:light}
+  .form-row{display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap}
+  .form-row .field{flex:1; min-width:200px; margin-bottom:0}
+
+  /* deliverable cards */
+  #list{margin-top:28px; display:flex; flex-direction:column; gap:16px}
+  .card{
+    background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+    overflow:hidden; border-left:4px solid var(--line); box-shadow:var(--shadow);
+  }
+  .card.soon{border-left-color:var(--coral)}
+  .card.done{border-left-color:var(--green)}
+  .card.missed{border-left-color:var(--rose); background:var(--rose-tint)}
+  .card-head{padding:20px 22px; display:flex; justify-content:space-between; gap:18px; align-items:flex-start}
+  .card-head .title{font-family:var(--display); font-weight:600; font-size:18px; margin:0; color:var(--ink)}
+  .card-head .desc{color:var(--muted); font-size:13px; margin:7px 0 0; white-space:pre-wrap}
+  .card-head .due{font-size:12px; color:var(--muted); margin-top:11px}
+  .count{text-align:right; white-space:nowrap; min-width:120px}
+  .count small{display:block; font-size:10px; letter-spacing:.14em; color:var(--muted); text-transform:uppercase; margin-bottom:4px; font-weight:700}
+  .count .cval{font-family:var(--display); font-weight:700; font-size:23px; color:var(--ink); font-variant-numeric:tabular-nums}
+  .count.soon .cval{color:var(--coral-deep)}
+  .count.open .cval{color:var(--green-deep); font-size:21px}
+  .count.done .cval{color:var(--green-deep); font-size:16px; font-weight:600}
+  .count.missed .cval{color:var(--rose-deep); font-size:14px; font-weight:600; white-space:normal; display:inline-block; max-width:230px; line-height:1.4}
+
+  .files{border-top:1px solid var(--line)}
+  .file{display:flex; align-items:center; gap:13px; padding:13px 22px; border-bottom:1px solid var(--line)}
+  .file:last-child{border-bottom:none}
+  .file.empty-row{color:var(--muted); font-size:13px; padding:15px 22px}
+  .lock{flex-shrink:0; color:var(--green-deep); display:flex}
+  .file .fmeta{flex:1; min-width:0}
+  .file .fname{font-size:14px; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .file .fsub{font-size:12px; color:var(--muted); margin-top:2px}
+  .file .ver{color:var(--green-deep); font-weight:600}
+  .file .factions{display:flex; gap:15px; align-items:center; flex-shrink:0}
+
+  .card-foot{padding:13px 22px; display:flex; justify-content:flex-end}
+
+  .empty{text-align:center; padding:44px 20px; color:var(--muted)}
+  .empty .lock{justify-content:center; color:#dcd4c4; margin-bottom:12px}
+  .empty p{margin:0; font-size:14px}
+
+  .foot-note{margin-top:38px; text-align:center; color:var(--muted); font-size:13px}
+
+  .state-card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:30px; text-align:center; box-shadow:var(--shadow)}
+  .state-card h2{font-family:var(--display); font-weight:600; margin:0 0 8px; color:var(--ink); font-size:19px}
+  .state-card p{color:var(--muted); font-size:14px; margin:0 auto 18px; max-width:450px}
+  .state-card code{font-size:12px; background:var(--blue-soft); border:1px solid #d4e4f1; padding:2px 6px; border-radius:6px; color:var(--blue-deep)}
+
+  #toast{position:fixed; left:50%; bottom:26px; transform:translateX(-50%) translateY(20px);
+    background:var(--card); border:1px solid var(--line); color:var(--ink-soft);
+    padding:12px 17px; border-radius:12px; font-size:13px; opacity:0; pointer-events:none;
+    transition:.25s; max-width:90vw; box-shadow:0 10px 34px rgba(70,70,95,.16)}
+  #toast.show{opacity:1; transform:translateX(-50%) translateY(0)}
+  #toast.err{border-color:var(--rose)}
+
+  .hidden{display:none !important}
+
+  @media (max-width:560px){
+    .card-head{flex-direction:column}
+    .count{text-align:left}
+    .count.missed .cval{max-width:none}
+  }
+  @media (prefers-reduced-motion:reduce){ *{transition:none !important} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <h1>Deadline Vault</h1>
+      <p>Drop this file in, drop that file in - when's the EP gonna drop though?</p>
+    </div>
+    <div class="conn" id="conn">
+      <span class="dot" id="dot"></span>
+      <span class="who" id="who">Not connected</span>
+      <button class="btn-ghost" id="connectBtn">Connect Google</button>
+    </div>
+  </header>
+  <div class="rule"></div>
+
+  <div id="setupCard" class="state-card hidden">
+    <h2>One setup step left</h2>
+    <p>Open <code>index.html</code> and paste your Google OAuth Client ID into the <code>CLIENT_ID</code> value near the top of the script. The README has the two-minute walkthrough.</p>
+  </div>
+
+  <div id="signedOut" class="state-card hidden">
+    <h2>Connect to begin</h2>
+    <p>Sign in with the Google account you want your submissions to live in. Files go straight to that account's Drive, and this app can only ever see what it puts there.</p>
+    <button class="btn-primary" id="connectBtn2">Connect Google</button>
+  </div>
+
+  <main id="app" class="hidden">
+    <section class="panel">
+      <h2>New deliverable</h2>
+      <div class="field">
+        <label for="dTitle">What is due</label>
+        <input id="dTitle" type="text" placeholder="e.g. Submit chapter 3 draft" maxlength="120" />
+      </div>
+      <div class="field">
+        <label for="dDesc">Notes (optional)</label>
+        <textarea id="dDesc" placeholder="Anything you want to remember about this commitment"></textarea>
+      </div>
+      <div class="form-row">
+        <div class="field">
+          <label for="dDeadline">Deadline</label>
+          <input id="dDeadline" type="datetime-local" />
+        </div>
+        <button class="btn-primary" id="createBtn">Create deliverable</button>
+      </div>
+    </section>
+
+    <section id="list"></section>
+    <p class="foot-note">Submissions are one-way. This app has no delete.</p>
+  </main>
+</div>
+
+<div id="toast"></div>
+
+<script src="https://accounts.google.com/gsi/client" onload="onGisLoaded()" async defer></script>
+<script>
+/* ============================================================
+   CONFIG - paste your OAuth Client ID here (see README)
+   ============================================================ */
+const CLIENT_ID = "PASTE_YOUR_OAUTH_CLIENT_ID_HERE";
+
+const SCOPE = "https://www.googleapis.com/auth/drive.file";
+const ROOT_FOLDER_NAME = "Deadline Vault";
+const DATA_FILE_NAME = "deadline-vault-data.json";
+
+/* gentle lines shown when a deadline passes with nothing submitted */
+const MISSED_LINES = [
+  "Deadline came and went. It happens to the best of us. \u{1F972}",
+  "Empty-handed at the buzzer. Be kind to yourself, then go again. \u2601\uFE0F",
+  "This one slipped by. The next deadline is a clean slate. \u{1F331}",
+  "No submission this time. You're still alright. \u{1F375}",
+  "Didn't make this one. Not a loser, just a human with a calendar. \u{1FAE7}",
+  "Missed it. Deep breath. Tomorrow is a fresh page. \u{1F4A4}",
+];
+
+/* ---------- token handling (GIS, client-side, no secret) ---------- */
+let tokenClient = null, accessToken = null, tokenExpiresAt = 0;
+let pendingResolve = null, pendingReject = null;
+
+function onGisLoaded(){
+  if (CLIENT_ID.startsWith("PASTE_")){ show("setupCard"); return; }
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: SCOPE,
+    callback: (resp) => {
+      if (resp && resp.error){ const r = pendingReject; clearPending(); r && r(resp); return; }
+      accessToken = resp.access_token;
+      tokenExpiresAt = Date.now() + ((resp.expires_in || 3600) * 1000) - 60000;
+      const r = pendingResolve; clearPending(); r && r(accessToken);
+    },
+    error_callback: (err) => { const r = pendingReject; clearPending(); r && r(err); },
+  });
+  show("signedOut");
+}
+function clearPending(){ pendingResolve = null; pendingReject = null; }
+
+function requestToken(interactive){
+  return new Promise((resolve, reject) => {
+    pendingResolve = resolve; pendingReject = reject;
+    try { tokenClient.requestAccessToken({ prompt: interactive ? "consent" : "" }); }
+    catch (e) { clearPending(); reject(e); }
+  });
+}
+async function ensureToken(){
+  if (accessToken && Date.now() < tokenExpiresAt) return accessToken;
+  return requestToken(false);
+}
+
+/* ---------- authorized fetch ---------- */
+async function gfetch(url, opts = {}, retry = true){
+  const t = await ensureToken();
+  const headers = Object.assign({}, opts.headers, { Authorization: "Bearer " + t });
+  const res = await fetch(url, Object.assign({}, opts, { headers }));
+  if (res.status === 401 && retry){ accessToken = null; return gfetch(url, opts, false); }
+  if (!res.ok){
+    let msg = res.status + " " + res.statusText;
+    try { const j = await res.json(); if (j.error && j.error.message) msg = j.error.message; } catch(_){}
+    throw new Error(msg);
+  }
+  return res;
+}
+
+/* ---------- Drive helpers ---------- */
+const API = "https://www.googleapis.com/drive/v3";
+const UPLOAD = "https://www.googleapis.com/upload/drive/v3";
+
+async function resumableUpload(method, url, metadata, blob){
+  const init = await gfetch(url, {
+    method,
+    headers: {
+      "Content-Type": "application/json; charset=UTF-8",
+      "X-Upload-Content-Type": blob.type || "application/octet-stream",
+      "X-Upload-Content-Length": String(blob.size),
+    },
+    body: JSON.stringify(metadata || {}),
+  });
+  const session = init.headers.get("Location");
+  if (!session) throw new Error("No upload session returned by Drive");
+  const put = await fetch(session, {
+    method: "PUT",
+    headers: { "Content-Type": blob.type || "application/octet-stream" },
+    body: blob,
+  });
+  if (!put.ok) throw new Error("Upload failed: " + put.status);
+  return put.json();
+}
+
+async function createFolder(name, parentId){
+  const body = { name, mimeType: "application/vnd.google-apps.folder" };
+  if (parentId) body.parents = [parentId];
+  const res = await gfetch(API + "/files?fields=id", {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+  });
+  return (await res.json()).id;
+}
+
+async function keepLatestRevision(fileId){
+  try {
+    const r = await gfetch(API + "/files/" + fileId + "/revisions?fields=revisions(id)");
+    const revs = (await r.json()).revisions || [];
+    const head = revs[revs.length - 1];
+    if (head) {
+      await gfetch(API + "/files/" + fileId + "/revisions/" + head.id, {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ keepForever: true }),
+      });
+    }
+  } catch(_) {}
+}
+
+/* ---------- state (mirrored to a JSON file in Drive) ---------- */
+let state = { rootFolderId: null, deliverables: [] };
+let dataFileId = null;
+
+async function loadState(){
+  const q = encodeURIComponent("name='" + DATA_FILE_NAME + "' and trashed=false");
+  const res = await gfetch(API + "/files?q=" + q + "&spaces=drive&fields=files(id,name)");
+  const found = (await res.json()).files || [];
+  if (found.length){
+    dataFileId = found[0].id;
+    const content = await gfetch(API + "/files/" + dataFileId + "?alt=media");
+    state = await content.json();
+    if (!state.deliverables) state.deliverables = [];
+    if (!state.rootFolderId) state.rootFolderId = await createFolder(ROOT_FOLDER_NAME);
+    return;
+  }
+  state = { rootFolderId: await createFolder(ROOT_FOLDER_NAME), deliverables: [] };
+  const created = await resumableUpload(
+    "POST",
+    UPLOAD + "/files?uploadType=resumable&fields=id",
+    { name: DATA_FILE_NAME, parents: [state.rootFolderId] },
+    new Blob([JSON.stringify(state)], { type: "application/json" })
+  );
+  dataFileId = created.id;
+}
+
+async function saveState(){
+  await gfetch(UPLOAD + "/files/" + dataFileId + "?uploadType=media", {
+    method: "PATCH", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(state),
+  });
+}
+
+/* ---------- actions ---------- */
+async function createDeliverable(){
+  const title = el("dTitle").value.trim();
+  const desc = el("dDesc").value.trim();
+  const dl = el("dDeadline").value;
+  if (!title){ toast("Give it a title first.", true); return; }
+  if (!dl){ toast("Set a deadline first.", true); return; }
+  const btn = el("createBtn"); lock(btn, "Creating\u2026");
+  try {
+    const id = crypto.randomUUID();
+    const folderId = await createFolder(title + " [" + id.slice(0,8) + "]", state.rootFolderId);
+    state.deliverables.push({
+      id, title, description: desc,
+      deadline: new Date(dl).toISOString(),
+      createdAt: new Date().toISOString(),
+      folderId, files: [],
+    });
+    await saveState();
+    el("dTitle").value = ""; el("dDesc").value = ""; el("dDeadline").value = "";
+    render();
+    toast("Deliverable created. The clock is running.");
+  } catch(e){ toast(e.message, true); }
+  finally { unlock(btn, "Create deliverable"); }
+}
+
+async function addFile(deliverableId, file, btn){
+  const d = state.deliverables.find(x => x.id === deliverableId);
+  if (!d) return;
+  if (Date.now() > new Date(d.deadline).getTime()){ toast("Too late, this one is sealed.", true); return; }
+  lock(btn, "Uploading\u2026");
+  try {
+    const f = await resumableUpload(
+      "POST",
+      UPLOAD + "/files?uploadType=resumable&fields=id,name,mimeType,size,webViewLink,createdTime",
+      { name: file.name, parents: [d.folderId] },
+      file
+    );
+    await keepLatestRevision(f.id);
+    d.files.push({
+      driveId: f.id, name: f.name, mimeType: f.mimeType,
+      sizeBytes: Number(f.size || 0), webViewLink: f.webViewLink,
+      createdAt: f.createdTime, lastUpdatedAt: f.createdTime, versions: 1,
+    });
+    await saveState(); render();
+    toast("Sealed. " + f.name + " is in.");
+  } catch(e){ toast(e.message, true); unlock(btn, "Add file"); }
+}
+
+async function updateFile(deliverableId, driveId, file, btn){
+  const d = state.deliverables.find(x => x.id === deliverableId);
+  if (d && Date.now() > new Date(d.deadline).getTime()){ toast("The update window has closed.", true); return; }
+  const rec = d && d.files.find(y => y.driveId === driveId);
+  if (!rec) return;
+  lock(btn, "Updating\u2026");
+  try {
+    const f = await resumableUpload(
+      "PATCH",
+      UPLOAD + "/files/" + driveId + "?uploadType=resumable&fields=id,name,size,modifiedTime,webViewLink",
+      {},
+      file
+    );
+    await keepLatestRevision(driveId);
+    rec.sizeBytes = Number(f.size || rec.sizeBytes);
+    rec.webViewLink = f.webViewLink || rec.webViewLink;
+    rec.lastUpdatedAt = f.modifiedTime;
+    rec.versions = (rec.versions || 1) + 1;
+    await saveState(); render();
+    toast("New version sealed. Earlier versions are kept.");
+  } catch(e){ toast(e.message, true); unlock(btn, "Update"); }
+}
+
+async function downloadFile(driveId, name, btn){
+  lock(btn, "\u2026");
+  try {
+    const res = await gfetch(API + "/files/" + driveId + "?alt=media");
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = name || "download";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+  } catch(e){ toast(e.message, true); }
+  finally { unlock(btn, "Download"); }
+}
+
+/* ---------- state machine ---------- */
+function computeState(d){
+  const past = Date.now() > new Date(d.deadline).getTime();
+  const has = d.files.length > 0;
+  if (has && past) return "submitted_closed";
+  if (has && !past) return "submitted_open";
+  if (!has && past) return "missed";
+  return "pending";
+}
+function missedLine(id){
+  let h = 0; for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  return MISSED_LINES[h % MISSED_LINES.length];
+}
+
+/* ---------- rendering ---------- */
+function render(){
+  const list = el("list");
+  const items = [...state.deliverables].sort((a,b) => new Date(a.deadline) - new Date(b.deadline));
+  if (!items.length){
+    list.innerHTML = '<div class="card"><div class="empty">' + lockSvg(28) +
+      '<p>No deliverables yet. Add one above to start the clock.</p></div></div>';
+    return;
+  }
+  list.innerHTML = items.map(d => {
+    const st = computeState(d);
+    const editable = (st === "pending" || st === "submitted_open");
+    const cardCls = st === "missed" ? "missed" : (st === "submitted_open" || st === "submitted_closed") ? "done" : "";
+
+    let filesHtml;
+    if (d.files.length){
+      filesHtml = d.files.map(f => fileRow(d.id, f, editable)).join("");
+    } else if (st === "pending"){
+      filesHtml = '<div class="file empty-row">Nothing in yet. Drop something before the clock runs out.</div>';
+    } else {
+      filesHtml = '<div class="file empty-row">Nothing was submitted.</div>';
+    }
+
+    const addBtn = (st === "pending" || st === "submitted_open")
+      ? '<div class="card-foot"><button class="btn-ghost" data-action="add" data-id="' + d.id + '">Add file</button></div>'
+      : '';
+
+    return (
+      '<article class="card ' + cardCls + '" data-card="' + d.id + '">' +
+        '<div class="card-head">' +
+          '<div>' +
+            '<p class="title">' + esc(d.title) + '</p>' +
+            (d.description ? '<p class="desc">' + esc(d.description) + '</p>' : '') +
+            '<p class="due">Due ' + fmtDate(d.deadline) + '</p>' +
+          '</div>' +
+          countBlock(d, st) +
+        '</div>' +
+        '<div class="files">' + filesHtml + '</div>' +
+        addBtn +
+      '</article>'
+    );
+  }).join("");
+  tick();
+}
+
+function countBlock(d, st){
+  if (st === "missed"){
+    return '<div class="count missed" data-card-count="' + d.id + '" data-state="missed">' +
+      '<small>Status</small><span class="cval">' + esc(missedLine(d.id)) + '</span></div>';
+  }
+  if (st === "submitted_closed"){
+    const made = d.files.some(f => new Date(f.createdAt) <= new Date(d.deadline));
+    return '<div class="count done" data-card-count="' + d.id + '" data-state="submitted_closed">' +
+      '<small>Status</small><span class="cval">' + (made ? "Made it \u2713" : "Submitted late \u2713") + '</span></div>';
+  }
+  if (st === "submitted_open"){
+    return '<div class="count open" data-card-count="' + d.id + '" data-state="submitted_open">' +
+      '<small>Window closes in</small><span class="cval">\u2014</span></div>';
+  }
+  return '<div class="count" data-card-count="' + d.id + '" data-state="pending">' +
+    '<small>Time left</small><span class="cval">\u2014</span></div>';
+}
+
+function fileRow(deliverableId, f, editable){
+  const ver = (f.versions > 1)
+    ? ' \u00b7 <span class="ver">v' + f.versions + '</span> \u00b7 updated ' + fmtDate(f.lastUpdatedAt)
+    : '';
+  const download = '<button class="btn-link" data-action="download" data-drive="' + f.driveId + '" data-name="' + esc(f.name) + '">Download</button>';
+  const open = f.webViewLink ? '<a class="btn-link" href="' + f.webViewLink + '" target="_blank" rel="noopener">Open in Drive</a>' : '';
+  const update = editable
+    ? '<button class="btn-link" data-action="update" data-id="' + deliverableId + '" data-drive="' + f.driveId + '">Update</button>'
+    : '';
+  return (
+    '<div class="file">' +
+      '<span class="lock">' + lockSvg(16) + '</span>' +
+      '<div class="fmeta">' +
+        '<div class="fname">' + esc(f.name) + '</div>' +
+        '<div class="fsub">' + bytes(f.sizeBytes) + ' \u00b7 sealed ' + fmtDate(f.createdAt) + ver + '</div>' +
+      '</div>' +
+      '<div class="factions">' + download + open + update + '</div>' +
+    '</div>'
+  );
+}
+
+function tick(){
+  let needRender = false;
+  for (const d of state.deliverables){
+    const node = document.querySelector('.count[data-card-count="' + d.id + '"]');
+    if (!node) continue;
+    const cur = computeState(d);
+    if (node.dataset.state !== cur){ needRender = true; continue; }
+    if (cur === "pending" || cur === "submitted_open"){
+      const r = remaining(d.deadline);
+      node.querySelector(".cval").textContent = r.text;
+      const soon = (cur === "pending" && r.state === "soon");
+      node.classList.toggle("soon", soon);
+      const card = node.closest(".card");
+      if (card){ card.classList.toggle("soon", soon); }
+    }
+  }
+  if (needRender) render();
+}
+setInterval(tick, 1000);
+
+/* ---------- event wiring ---------- */
+document.addEventListener("click", (e) => {
+  const t = e.target.closest("[data-action]");
+  if (!t) return;
+  const action = t.getAttribute("data-action");
+  const id = t.getAttribute("data-id");
+  const drive = t.getAttribute("data-drive");
+  if (action === "add"){ pickFile(f => addFile(id, f, t)); }
+  else if (action === "update"){ pickFile(f => updateFile(id, drive, f, t)); }
+  else if (action === "download"){ downloadFile(drive, t.getAttribute("data-name"), t); }
+});
+
+function pickFile(cb){
+  const input = document.createElement("input");
+  input.type = "file";
+  input.onchange = () => { if (input.files && input.files[0]) cb(input.files[0]); };
+  input.click();
+}
+
+el("createBtn").addEventListener("click", createDeliverable);
+el("connectBtn").addEventListener("click", connect);
+el("connectBtn2").addEventListener("click", connect);
+
+async function connect(){
+  try {
+    await requestToken(true);
+    setConnected();
+    await loadState();
+    show("app"); render();
+    fetchIdentity();
+  } catch(e){
+    toast("Sign-in was cancelled or blocked.", true);
+  }
+}
+
+async function fetchIdentity(){
+  try {
+    const res = await gfetch(API + "/about?fields=user(emailAddress,displayName)");
+    const u = (await res.json()).user;
+    if (u && u.emailAddress) el("who").textContent = u.emailAddress;
+  } catch(_){ el("who").textContent = "Connected"; }
+}
+
+function setConnected(){
+  el("dot").classList.add("on");
+  el("who").textContent = "Connected";
+  el("connectBtn").textContent = "Reconnect";
+}
+
+/* ---------- utils ---------- */
+function el(id){ return document.getElementById(id); }
+function show(id){ ["setupCard","signedOut","app"].forEach(x => el(x).classList.toggle("hidden", x !== id)); }
+function lock(btn, label){ if(!btn) return; if(btn.dataset.prev === undefined) btn.dataset.prev = btn.textContent; btn.textContent = label; btn.disabled = true; }
+function unlock(btn, label){ if(!btn) return; btn.textContent = label || btn.dataset.prev || "Done"; btn.disabled = false; delete btn.dataset.prev; }
+function esc(s){ return String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c])); }
+function bytes(n){
+  if (!n) return "0 B";
+  const u = ["B","KB","MB","GB"]; let i = 0, v = n;
+  while (v >= 1024 && i < u.length - 1){ v /= 1024; i++; }
+  return (i === 0 ? v : v.toFixed(1)) + " " + u[i];
+}
+function fmtDate(iso){
+  if (!iso) return "\u2014";
+  return new Date(iso).toLocaleString([], { day:"numeric", month:"short", year:"numeric", hour:"2-digit", minute:"2-digit" });
+}
+function remaining(iso){
+  let ms = new Date(iso) - Date.now();
+  const over = ms < 0; if (over) ms = -ms;
+  const s = Math.floor(ms / 1000);
+  const d = Math.floor(s / 86400);
+  const h = Math.floor((s % 86400) / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  const pad = n => String(n).padStart(2, "0");
+  const body = (d > 0 ? d + "d " : "") + pad(h) + ":" + pad(m) + ":" + pad(sec);
+  if (over) return { text: "+" + body, state: "over" };
+  return { text: body, state: (ms < 86400000 ? "soon" : "ok") };
+}
+let toastTimer;
+function toast(msg, isErr){
+  const t = el("toast");
+  t.textContent = msg; t.classList.toggle("err", !!isErr); t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("show"), 3800);
+}
+function lockSvg(size){
+  return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+    '<rect x="5" y="11" width="14" height="9" rx="2.5" stroke="currentColor" stroke-width="1.6"/>' +
+    '<path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>' +
+    '</svg>';
+}
+</script>
+</body>
+</html>
