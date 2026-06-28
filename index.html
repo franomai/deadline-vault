@@ -80,14 +80,15 @@
   .collapse-body{margin-top:18px}
 
   /* tabs */
-  .tabs{display:flex; gap:10px; margin:26px 0 4px; border-bottom:1px solid var(--line)}
-  .tab{background:none; border:none; cursor:pointer; padding:9px 4px 12px; margin-bottom:-1px;
-    font-family:var(--body); font-weight:700; font-size:14px; color:var(--muted);
-    border-bottom:2px solid transparent; display:flex; align-items:center; gap:7px}
-  .tab:hover{color:var(--ink-soft)}
-  .tab.active{color:var(--ink); border-bottom-color:var(--blue-deep)}
-  .tabcount{font-size:11px; font-weight:700; background:var(--blue-soft); color:var(--blue-deep);
-    border-radius:20px; padding:1px 8px; min-width:20px; text-align:center}
+  .tabs{display:flex; margin:26px 0 4px; border-bottom:2px solid var(--line)}
+  .tab{flex:1; background:none; border:none; cursor:pointer; padding:13px 8px; margin-bottom:-2px;
+    font-family:var(--body); font-weight:700; font-size:15px; color:var(--muted);
+    border-bottom:3px solid transparent; border-top-left-radius:10px; border-top-right-radius:10px;
+    display:flex; align-items:center; justify-content:center; gap:8px; transition:color .15s, background .15s}
+  .tab:hover{color:var(--ink-soft); background:var(--blue-soft)}
+  .tab.active{color:var(--blue-deep); background:var(--blue-soft); border-bottom-color:var(--blue-deep)}
+  .tabcount{font-size:12px; font-weight:700; background:var(--line); color:var(--ink-soft);
+    border-radius:20px; padding:2px 9px; min-width:22px; text-align:center}
   .tab.active .tabcount{background:var(--blue-deep); color:#fff}
 
   /* deliverable cards */
@@ -145,11 +146,14 @@
   .state-card code{font-size:12px; background:var(--blue-soft); border:1px solid #d4e4f1; padding:2px 6px; border-radius:6px; color:var(--blue-deep)}
 
   #toast{position:fixed; left:50%; bottom:26px; transform:translateX(-50%) translateY(20px);
-    background:var(--card); border:1px solid var(--line); color:var(--ink-soft);
+    z-index:100; background:var(--card); border:1px solid var(--line); color:var(--ink-soft);
     padding:12px 17px; border-radius:12px; font-size:13px; opacity:0; pointer-events:none;
     transition:.25s; max-width:90vw; box-shadow:0 10px 34px rgba(70,70,95,.16)}
   #toast.show{opacity:1; transform:translateX(-50%) translateY(0)}
   #toast.err{border-color:var(--miss)}
+
+  /* blocks all interaction while a save-bearing op is in flight */
+  #busyOverlay{position:fixed; inset:0; z-index:60; cursor:progress; background:transparent}
 
   .hidden{display:none !important}
 
@@ -215,6 +219,7 @@
   </main>
 </div>
 
+<div id="busyOverlay" class="hidden"></div>
 <div id="toast"></div>
 
 <script src="https://accounts.google.com/gsi/client" onload="onGisLoaded()" async defer></script>
@@ -377,7 +382,7 @@ async function createDeliverable(){
   const dl = el("dDeadline").value;
   if (!title){ toast("Give it a title first.", true); return; }
   if (!dl){ toast("Set a deadline first.", true); return; }
-  const btn = el("createBtn"); lock(btn, "Creating\u2026");
+  const btn = el("createBtn"); lock(btn, "Creating\u2026"); setBusy(true);
   try {
     const id = crypto.randomUUID();
     const folderId = await createFolder(title + " [" + id.slice(0,8) + "]", state.rootFolderId);
@@ -395,14 +400,14 @@ async function createDeliverable(){
     render();
     toast("Deliverable created. The clock is running.");
   } catch(e){ toast(e.message, true); }
-  finally { unlock(btn, "Create deliverable"); }
+  finally { unlock(btn, "Create deliverable"); setBusy(false); }
 }
 
 async function addFile(deliverableId, file, btn){
   const d = state.deliverables.find(x => x.id === deliverableId);
   if (!d) return;
   if (Date.now() > new Date(d.deadline).getTime()){ toast("Too late, this one is sealed.", true); return; }
-  lock(btn, "Uploading\u2026");
+  lock(btn, "Uploading\u2026"); setBusy(true);
   try {
     const f = await resumableUpload(
       "POST",
@@ -419,6 +424,7 @@ async function addFile(deliverableId, file, btn){
     await saveState(); render();
     toast("Sealed. " + f.name + " is in.");
   } catch(e){ toast(e.message, true); unlock(btn, "Add file"); }
+  finally { setBusy(false); }
 }
 
 async function updateFile(deliverableId, driveId, file, btn){
@@ -426,7 +432,7 @@ async function updateFile(deliverableId, driveId, file, btn){
   if (d && Date.now() > new Date(d.deadline).getTime()){ toast("The update window has closed.", true); return; }
   const rec = d && d.files.find(y => y.driveId === driveId);
   if (!rec) return;
-  lock(btn, "Updating\u2026");
+  lock(btn, "Updating\u2026"); setBusy(true);
   try {
     const f = await resumableUpload(
       "PATCH",
@@ -442,6 +448,7 @@ async function updateFile(deliverableId, driveId, file, btn){
     await saveState(); render();
     toast("New version sealed. Earlier versions are kept.");
   } catch(e){ toast(e.message, true); unlock(btn, "Update"); }
+  finally { setBusy(false); }
 }
 
 async function downloadFile(driveId, name, btn){
@@ -635,7 +642,7 @@ async function restoreVersion(deliverableId, fileId, revId, name, btn){
   if (Date.now() > new Date(d.deadline).getTime()){ toast("The update window has closed.", true); return; }
   const rec = d.files.find(y => y.driveId === fileId);
   if (!rec) return;
-  lock(btn, "Restoring\u2026");
+  lock(btn, "Restoring\u2026"); setBusy(true);
   try {
     const res = await gfetch(API + "/files/" + fileId + "/revisions/" + revId + "?alt=media");
     let blob = await res.blob();
@@ -654,9 +661,11 @@ async function restoreVersion(deliverableId, fileId, revId, name, btn){
     await saveState(); render();
     toast("Restored that version as the current one.");
   } catch(e){ toast(e.message, true); unlock(btn, "Restore"); }
+  finally { setBusy(false); }
 }
 
 function tick(){
+  if (document.body.classList.contains("busy")) return;
   let needRender = false;
   for (const d of state.deliverables){
     const node = document.querySelector('.count[data-card-count="' + d.id + '"]');
@@ -755,6 +764,7 @@ function setConnected(){
 /* ---------- utils ---------- */
 function el(id){ return document.getElementById(id); }
 function show(id){ ["signedOut","app"].forEach(x => el(x).classList.toggle("hidden", x !== id)); }
+function setBusy(b){ el("busyOverlay").classList.toggle("hidden", !b); document.body.classList.toggle("busy", b); }
 function lock(btn, label){ if(!btn) return; if(btn.dataset.prev === undefined) btn.dataset.prev = btn.textContent; btn.textContent = label; btn.disabled = true; }
 function unlock(btn, label){ if(!btn) return; btn.textContent = label || btn.dataset.prev || "Done"; btn.disabled = false; delete btn.dataset.prev; }
 function esc(s){ return String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c])); }
