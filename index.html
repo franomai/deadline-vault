@@ -144,6 +144,8 @@
   .state-card h2{font-family:var(--display); font-weight:600; margin:0 0 8px; color:var(--ink); font-size:19px}
   .state-card p{color:var(--muted); font-size:14px; margin:0 auto 18px; max-width:450px}
   .state-card code{font-size:12px; background:var(--blue-soft); border:1px solid #d4e4f1; padding:2px 6px; border-radius:6px; color:var(--blue-deep)}
+  .spinner{width:30px; height:30px; border-radius:50%; border:3px solid var(--line); border-top-color:var(--blue-deep); margin:0 auto 16px; animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
 
   #toast{position:fixed; left:50%; bottom:26px; transform:translateX(-50%) translateY(20px);
     z-index:100; background:var(--card); border:1px solid var(--line); color:var(--ink-soft);
@@ -161,8 +163,14 @@
     .card-head{flex-direction:column}
     .count{text-align:left}
     .count.missed .cval, .count.done .cval{max-width:none}
+    .top{flex-direction:column; align-items:stretch; gap:14px}
+    .conn{justify-content:space-between; width:100%; flex-wrap:nowrap;
+      padding:9px 12px; background:var(--card); border:1px solid var(--line); border-radius:12px}
+    .conn .dot{flex-shrink:0}
+    .conn .who{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+    .conn .btn-ghost{flex-shrink:0}
   }
-  @media (prefers-reduced-motion:reduce){ *{transition:none !important} }
+  @media (prefers-reduced-motion:reduce){ *{transition:none !important} .spinner{animation:none} }
 </style>
 </head>
 <body>
@@ -184,6 +192,13 @@
     <h2>Connect to begin</h2>
     <p>Sign in with the Google account you want your submissions to live in. Files go straight to that account's Drive, and this app can only ever see what it puts there.</p>
     <button class="btn-primary" id="connectBtn2">Connect Google</button>
+  </div>
+
+  <div id="loading" class="state-card hidden">
+    <div id="loadSpinner" class="spinner" aria-hidden="true"></div>
+    <h2 id="loadTitle">Setting up your vault</h2>
+    <p id="loadMsg">Connecting to Google Drive and loading your deliverables…</p>
+    <button id="retryLoad" class="btn-primary hidden">Try again</button>
   </div>
 
   <main id="app" class="hidden">
@@ -284,7 +299,7 @@ async function ensureToken(){
 async function gfetch(url, opts = {}, retry = true){
   const t = await ensureToken();
   const headers = Object.assign({}, opts.headers, { Authorization: "Bearer " + t });
-  const res = await fetch(url, Object.assign({}, opts, { headers }));
+  const res = await fetch(url, Object.assign({ cache: "no-store" }, opts, { headers }));
   if (res.status === 401 && retry){ accessToken = null; return gfetch(url, opts, false); }
   if (!res.ok){
     let msg = res.status + " " + res.statusText;
@@ -718,6 +733,7 @@ function pickFile(cb){
 el("createBtn").addEventListener("click", createDeliverable);
 el("connectBtn").addEventListener("click", connect);
 el("connectBtn2").addEventListener("click", connect);
+el("retryLoad").addEventListener("click", runLoad);
 
 el("newToggle").addEventListener("click", () => {
   const nowHidden = el("newBody").classList.toggle("hidden");
@@ -738,12 +754,29 @@ function switchTab(which){
 async function connect(){
   try {
     await requestToken(true);
-    setConnected();
+  } catch(e){
+    toast("Sign-in was cancelled or blocked.", true);
+    return;
+  }
+  setConnected();
+  runLoad();
+}
+
+async function runLoad(){
+  show("loading");
+  el("loadSpinner").classList.remove("hidden");
+  el("retryLoad").classList.add("hidden");
+  el("loadTitle").textContent = "Setting up your vault";
+  el("loadMsg").textContent = "Connecting to Google Drive and loading your deliverables\u2026";
+  try {
     await loadState();
     show("app"); render();
     fetchIdentity();
   } catch(e){
-    toast("Sign-in was cancelled or blocked.", true);
+    el("loadSpinner").classList.add("hidden");
+    el("loadTitle").textContent = "Couldn't finish setup";
+    el("loadMsg").textContent = e.message || "Something went wrong reaching Google Drive.";
+    el("retryLoad").classList.remove("hidden");
   }
 }
 
@@ -763,7 +796,7 @@ function setConnected(){
 
 /* ---------- utils ---------- */
 function el(id){ return document.getElementById(id); }
-function show(id){ ["signedOut","app"].forEach(x => el(x).classList.toggle("hidden", x !== id)); }
+function show(id){ ["signedOut","loading","app"].forEach(x => el(x).classList.toggle("hidden", x !== id)); }
 function setBusy(b){ el("busyOverlay").classList.toggle("hidden", !b); document.body.classList.toggle("busy", b); }
 function lock(btn, label){ if(!btn) return; if(btn.dataset.prev === undefined) btn.dataset.prev = btn.textContent; btn.textContent = label; btn.disabled = true; }
 function unlock(btn, label){ if(!btn) return; btn.textContent = label || btn.dataset.prev || "Done"; btn.disabled = false; delete btn.dataset.prev; }
