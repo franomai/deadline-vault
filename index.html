@@ -71,8 +71,27 @@
   .form-row{display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap}
   .form-row .field{flex:1; min-width:200px; margin-bottom:0}
 
+  /* collapsible new-deliverable header */
+  .collapse-head{width:100%; display:flex; align-items:center; justify-content:space-between;
+    background:none; border:none; padding:0; cursor:pointer;
+    font-family:var(--display); font-weight:600; font-size:16px; color:var(--ink)}
+  .collapse-head .chev{font-size:22px; line-height:1; color:var(--blue-deep); transition:transform .18s}
+  .collapse-head[aria-expanded="true"] .chev{transform:rotate(45deg)}
+  .collapse-body{margin-top:18px}
+
+  /* tabs */
+  .tabs{display:flex; gap:10px; margin:26px 0 4px; border-bottom:1px solid var(--line)}
+  .tab{background:none; border:none; cursor:pointer; padding:9px 4px 12px; margin-bottom:-1px;
+    font-family:var(--body); font-weight:700; font-size:14px; color:var(--muted);
+    border-bottom:2px solid transparent; display:flex; align-items:center; gap:7px}
+  .tab:hover{color:var(--ink-soft)}
+  .tab.active{color:var(--ink); border-bottom-color:var(--blue-deep)}
+  .tabcount{font-size:11px; font-weight:700; background:var(--blue-soft); color:var(--blue-deep);
+    border-radius:20px; padding:1px 8px; min-width:20px; text-align:center}
+  .tab.active .tabcount{background:var(--blue-deep); color:#fff}
+
   /* deliverable cards */
-  #list{margin-top:28px; display:flex; flex-direction:column; gap:16px}
+  #openList, #closedList{margin-top:18px; display:flex; flex-direction:column; gap:16px}
   .card{
     background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
     overflow:hidden; border-left:4px solid var(--line); box-shadow:var(--shadow);
@@ -89,19 +108,28 @@
   .count .cval{font-family:var(--display); font-weight:700; font-size:23px; color:var(--ink); font-variant-numeric:tabular-nums}
   .count.soon .cval{color:var(--warn-deep)}
   .count.open .cval{color:var(--ok-deep); font-size:21px}
-  .count.done .cval{color:var(--ok-deep); font-size:16px; font-weight:600}
+  .count.done .cval{color:var(--ok-deep); font-size:14px; font-weight:600; white-space:normal; display:inline-block; max-width:230px; line-height:1.4}
   .count.missed .cval{color:var(--miss-deep); font-size:14px; font-weight:600; white-space:normal; display:inline-block; max-width:230px; line-height:1.4}
 
   .files{border-top:1px solid var(--line)}
-  .file{display:flex; align-items:center; gap:13px; padding:13px 22px; border-bottom:1px solid var(--line)}
-  .file:last-child{border-bottom:none}
+  .file-wrap{border-bottom:1px solid var(--line)}
+  .file-wrap:last-child{border-bottom:none}
+  .file{display:flex; align-items:center; gap:13px; padding:13px 22px}
   .file.empty-row{color:var(--muted); font-size:13px; padding:15px 22px}
   .lock{flex-shrink:0; color:var(--ok-deep); display:flex}
   .file .fmeta{flex:1; min-width:0}
   .file .fname{font-size:14px; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .file .fsub{font-size:12px; color:var(--muted); margin-top:2px}
   .file .ver{color:var(--ok-deep); font-weight:600}
-  .file .factions{display:flex; gap:15px; align-items:center; flex-shrink:0}
+  .file .factions{display:flex; gap:14px; align-items:center; flex-shrink:0; flex-wrap:wrap; justify-content:flex-end}
+
+  .versions{padding:2px 22px 14px 50px; background:var(--blue-soft)}
+  .versions .vload{font-size:12px; color:var(--muted); padding:8px 0}
+  .vrow{display:flex; align-items:center; gap:12px; padding:8px 0; border-bottom:1px dashed var(--line)}
+  .vrow:last-child{border-bottom:none}
+  .vrow .vmeta{flex:1; min-width:0; font-size:12px; color:var(--ink-soft)}
+  .vrow .vcur{font-size:10px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--ok-deep); margin-left:8px}
+  .vrow .vactions{display:flex; gap:14px; flex-shrink:0}
 
   .card-foot{padding:13px 22px; display:flex; justify-content:flex-end}
 
@@ -128,7 +156,7 @@
   @media (max-width:560px){
     .card-head{flex-direction:column}
     .count{text-align:left}
-    .count.missed .cval{max-width:none}
+    .count.missed .cval, .count.done .cval{max-width:none}
   }
   @media (prefers-reduced-motion:reduce){ *{transition:none !important} }
 </style>
@@ -156,26 +184,34 @@
 
   <main id="app" class="hidden">
     <section class="panel">
-      <h2>New deliverable</h2>
-      <div class="field">
-        <label for="dTitle">What is due</label>
-        <input id="dTitle" type="text" placeholder="e.g. Submit chapter 3 draft" maxlength="120" />
-      </div>
-      <div class="field">
-        <label for="dDesc">Notes (optional)</label>
-        <textarea id="dDesc" placeholder="Anything you want to remember about this commitment"></textarea>
-      </div>
-      <div class="form-row">
+      <button id="newToggle" class="collapse-head" aria-expanded="false">New deliverable <span class="chev">+</span></button>
+      <div id="newBody" class="collapse-body hidden">
         <div class="field">
-          <label for="dDeadline">Deadline</label>
-          <input id="dDeadline" type="datetime-local" />
+          <label for="dTitle">What is due</label>
+          <input id="dTitle" type="text" placeholder="e.g. Get the EP files lookin some sorta way" maxlength="120" />
         </div>
-        <button class="btn-primary" id="createBtn">Create deliverable</button>
+        <div class="field">
+          <label for="dDesc">Notes (optional)</label>
+          <textarea id="dDesc" placeholder="Anything you want to remember about this commitment or a reminder not to start from square one on multiple months of work idk"></textarea>
+        </div>
+        <div class="form-row">
+          <div class="field">
+            <label for="dDeadline">Deadline</label>
+            <input id="dDeadline" type="datetime-local" />
+          </div>
+          <button class="btn-primary" id="createBtn">Create deliverable</button>
+        </div>
       </div>
     </section>
 
-    <section id="list"></section>
-    <p class="foot-note">Submissions are one-way. This app has no delete.</p>
+    <div class="tabs" role="tablist">
+      <button class="tab active" id="tabOpen" role="tab" aria-selected="true">Open <span class="tabcount" id="countOpen">0</span></button>
+      <button class="tab" id="tabClosed" role="tab" aria-selected="false">Closed <span class="tabcount" id="countClosed">0</span></button>
+    </div>
+
+    <section id="openList"></section>
+    <section id="closedList" class="hidden"></section>
+    <p class="foot-note">Remember, starting is the hardest part!</p>
   </main>
 </div>
 
@@ -183,18 +219,28 @@
 
 <script src="https://accounts.google.com/gsi/client" onload="onGisLoaded()" async defer></script>
 <script>
+/* ============================================================
+   CONFIG - OAuth Client ID (public by design; locked to the
+   authorized JavaScript origin you registered in Google Cloud)
+   ============================================================ */
 const CLIENT_ID = "156129012356-8dtp9j5sia19cs97hiob5fbrlu1psqgb.apps.googleusercontent.com";
 
 const SCOPE = "https://www.googleapis.com/auth/drive.file";
 const ROOT_FOLDER_NAME = "Deadline Vault";
 const DATA_FILE_NAME = "deadline-vault-data.json";
 
-/* gentle lines shown when a deadline passes with nothing submitted */
+/* status lines (cycled so adjacent cards differ) */
 const MISSED_LINES = [
-  "Deadline came and went. It happens to the best of us. \u{1F972}",
-  "Empty-handed at the buzzer. Be kind to yourself, then go again. \u2601\uFE0F",
-  "This one slipped by. The next deadline is a clean slate. \u{1F331}",
-  "Missed it. Deep breath. Tomorrow is a fresh page. \u{1F4A4}",
+  "No submission? Ain't no way \u{1F629}",
+  "No submission? Back to sleep... \u{1F634}",
+  "No submission? Better luck next time... \u{1F972}",
+  "No submission? Well, y'know... \u{1F937}",
+];
+const ONTIME_LINES = [
+  "On time! I am so proud of you! \u{1F979}",
+  "On time! Hell yeah! \u{1F525}",
+  "On time! Keep it up! \u{1F4AA}",
+  "On time! OK, this guy's the GOAT. \u{1F410}",
 ];
 
 /* ---------- token handling (GIS, client-side, no secret) ---------- */
@@ -343,6 +389,9 @@ async function createDeliverable(){
     });
     await saveState();
     el("dTitle").value = ""; el("dDesc").value = ""; el("dDeadline").value = "";
+    el("newBody").classList.add("hidden");
+    el("newToggle").setAttribute("aria-expanded", "false");
+    switchTab("open");
     render();
     toast("Deliverable created. The clock is running.");
   } catch(e){ toast(e.message, true); }
@@ -422,60 +471,75 @@ function missedLine(id){
   let h = 0; for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
   return MISSED_LINES[h % MISSED_LINES.length];
 }
+function ontimeLine(idx){
+  return ONTIME_LINES[((idx % ONTIME_LINES.length) + ONTIME_LINES.length) % ONTIME_LINES.length];
+}
 
 /* ---------- rendering ---------- */
 function render(){
-  const list = el("list");
-  const items = [...state.deliverables].sort((a,b) => new Date(a.deadline) - new Date(b.deadline));
-  if (!items.length){
-    list.innerHTML = '<div class="card"><div class="empty">' + lockSvg(28) +
-      '<p>No deliverables yet. Add one above to start the clock.</p></div></div>';
-    return;
-  }
-  list.innerHTML = items.map(d => {
+  const open = [], closed = [];
+  for (const d of state.deliverables){
     const st = computeState(d);
-    const editable = (st === "pending" || st === "submitted_open");
-    const cardCls = st === "missed" ? "missed" : (st === "submitted_open" || st === "submitted_closed") ? "done" : "";
+    (st === "submitted_closed" || st === "missed" ? closed : open).push({ d, st });
+  }
+  open.sort((a,b) => new Date(a.d.deadline) - new Date(b.d.deadline));    // soonest first
+  closed.sort((a,b) => new Date(b.d.deadline) - new Date(a.d.deadline));  // most recent first
 
-    let filesHtml;
-    if (d.files.length){
-      filesHtml = d.files.map(f => fileRow(d.id, f, editable)).join("");
-    } else if (st === "pending"){
-      filesHtml = '<div class="file empty-row">Nothing in yet. Drop something before the clock runs out.</div>';
-    } else {
-      filesHtml = '<div class="file empty-row">Nothing was submitted.</div>';
-    }
+  el("countOpen").textContent = open.length;
+  el("countClosed").textContent = closed.length;
 
-    const addBtn = (st === "pending" || st === "submitted_open")
-      ? '<div class="card-foot"><button class="btn-ghost" data-action="add" data-id="' + d.id + '">Add file</button></div>'
-      : '';
+  el("openList").innerHTML = open.length
+    ? open.map((x, i) => cardHtml(x.d, x.st, i)).join("")
+    : '<div class="card"><div class="empty">' + lockSvg(28) + '<p>Nothing open. Add a deliverable to start the clock.</p></div></div>';
 
-    return (
-      '<article class="card ' + cardCls + '" data-card="' + d.id + '">' +
-        '<div class="card-head">' +
-          '<div>' +
-            '<p class="title">' + esc(d.title) + '</p>' +
-            (d.description ? '<p class="desc">' + esc(d.description) + '</p>' : '') +
-            '<p class="due">Due ' + fmtDate(d.deadline) + '</p>' +
-          '</div>' +
-          countBlock(d, st) +
-        '</div>' +
-        '<div class="files">' + filesHtml + '</div>' +
-        addBtn +
-      '</article>'
-    );
-  }).join("");
+  el("closedList").innerHTML = closed.length
+    ? closed.map((x, i) => cardHtml(x.d, x.st, i)).join("")
+    : '<div class="card"><div class="empty">' + lockSvg(28) + '<p>Nothing here yet. Sealed and missed deliverables land here.</p></div></div>';
+
   tick();
 }
 
-function countBlock(d, st){
+function cardHtml(d, st, idx){
+  const editable = (st === "pending" || st === "submitted_open");
+  const cardCls = st === "missed" ? "missed" : (st === "submitted_open" || st === "submitted_closed") ? "done" : "";
+
+  let filesHtml;
+  if (d.files.length){
+    filesHtml = d.files.map(f => fileRow(d.id, f, editable)).join("");
+  } else if (st === "pending"){
+    filesHtml = '<div class="file empty-row">Nothing in yet. Drop something before the clock runs out.</div>';
+  } else {
+    filesHtml = '<div class="file empty-row">Nothing was submitted.</div>';
+  }
+
+  const addBtn = editable
+    ? '<div class="card-foot"><button class="btn-ghost" data-action="add" data-id="' + d.id + '">Add file</button></div>'
+    : '';
+
+  return (
+    '<article class="card ' + cardCls + '" data-card="' + d.id + '">' +
+      '<div class="card-head">' +
+        '<div>' +
+          '<p class="title">' + esc(d.title) + '</p>' +
+          (d.description ? '<p class="desc">' + esc(d.description) + '</p>' : '') +
+          '<p class="due">Due ' + fmtDate(d.deadline) + '</p>' +
+        '</div>' +
+        countBlock(d, st, idx) +
+      '</div>' +
+      '<div class="files">' + filesHtml + '</div>' +
+      addBtn +
+    '</article>'
+  );
+}
+
+function countBlock(d, st, idx){
   if (st === "missed"){
     return '<div class="count missed" data-card-count="' + d.id + '" data-state="missed">' +
       '<small>Status</small><span class="cval">' + esc(missedLine(d.id)) + '</span></div>';
   }
   if (st === "submitted_closed"){
     return '<div class="count done" data-card-count="' + d.id + '" data-state="submitted_closed">' +
-      '<small>Status</small><span class="cval">Made it \u2713</span></div>';
+      '<small>Status</small><span class="cval">' + esc(ontimeLine(idx)) + '</span></div>';
   }
   if (st === "submitted_open"){
     return '<div class="count open" data-card-count="' + d.id + '" data-state="submitted_open">' +
@@ -490,20 +554,106 @@ function fileRow(deliverableId, f, editable){
     ? ' \u00b7 <span class="ver">v' + f.versions + '</span> \u00b7 updated ' + fmtDate(f.lastUpdatedAt)
     : '';
   const download = '<button class="btn-link" data-action="download" data-drive="' + f.driveId + '" data-name="' + esc(f.name) + '">Download</button>';
-  const open = f.webViewLink ? '<a class="btn-link" href="' + f.webViewLink + '" target="_blank" rel="noopener">Open in Drive</a>' : '';
+  const versions = '<button class="btn-link" data-action="versions" data-drive="' + f.driveId + '" data-name="' + esc(f.name) + '" data-id="' + deliverableId + '">Versions</button>';
   const update = editable
     ? '<button class="btn-link" data-action="update" data-id="' + deliverableId + '" data-drive="' + f.driveId + '">Update</button>'
     : '';
   return (
-    '<div class="file">' +
-      '<span class="lock">' + lockSvg(16) + '</span>' +
-      '<div class="fmeta">' +
-        '<div class="fname">' + esc(f.name) + '</div>' +
-        '<div class="fsub">' + bytes(f.sizeBytes) + ' \u00b7 sealed ' + fmtDate(f.createdAt) + ver + '</div>' +
+    '<div class="file-wrap">' +
+      '<div class="file">' +
+        '<span class="lock">' + lockSvg(16) + '</span>' +
+        '<div class="fmeta">' +
+          '<div class="fname">' + esc(f.name) + '</div>' +
+          '<div class="fsub">' + bytes(f.sizeBytes) + ' \u00b7 sealed ' + fmtDate(f.createdAt) + ver + '</div>' +
+        '</div>' +
+        '<div class="factions">' + download + versions + update + '</div>' +
       '</div>' +
-      '<div class="factions">' + download + open + update + '</div>' +
+      '<div class="versions hidden" data-versions="' + f.driveId + '"></div>' +
     '</div>'
   );
+}
+
+/* ---------- version history ---------- */
+async function listRevisions(fileId){
+  const r = await gfetch(API + "/files/" + fileId + "/revisions?fields=revisions(id,modifiedTime,size)");
+  const revs = (await r.json()).revisions || [];
+  return revs.reverse(); // Drive returns oldest-first; show newest-first
+}
+
+function versionRow(driveId, name, deliverableId, editable, rev, isCurrent){
+  const meta = fmtDate(rev.modifiedTime) + ' \u00b7 ' + bytes(Number(rev.size || 0)) +
+    (isCurrent ? '<span class="vcur">current</span>' : '');
+  const dl = '<button class="btn-link" data-action="download-rev" data-drive="' + driveId +
+    '" data-rev="' + rev.id + '" data-name="' + esc(name) + '" data-date="' + esc(fmtDate(rev.modifiedTime)) + '">Download</button>';
+  const restore = (editable && !isCurrent)
+    ? '<button class="btn-link" data-action="restore" data-id="' + deliverableId + '" data-drive="' + driveId + '" data-rev="' + rev.id + '" data-name="' + esc(name) + '">Restore</button>'
+    : '';
+  return '<div class="vrow"><div class="vmeta">' + meta + '</div><div class="vactions">' + dl + restore + '</div></div>';
+}
+
+async function toggleVersions(driveId, name, deliverableId, editable, btn){
+  const box = document.querySelector('.versions[data-versions="' + driveId + '"]');
+  if (!box) return;
+  if (!box.classList.contains("hidden")){ box.classList.add("hidden"); btn.textContent = "Versions"; return; }
+  box.classList.remove("hidden");
+  btn.textContent = "Hide";
+  box.innerHTML = '<div class="vload">Loading versions\u2026</div>';
+  try {
+    const revs = await listRevisions(driveId);
+    box.innerHTML = revs.length
+      ? revs.map((r, i) => versionRow(driveId, name, deliverableId, editable, r, i === 0)).join("")
+      : '<div class="vload">No version history.</div>';
+  } catch(e){
+    box.innerHTML = '<div class="vload">Could not load versions: ' + esc(e.message) + '</div>';
+  }
+}
+
+function taggedName(name, dateStr){
+  if (!dateStr) return name;
+  const tag = " (" + dateStr.replace(/[^\w]+/g, "-").replace(/^-|-$/g, "") + ")";
+  const dot = name.lastIndexOf(".");
+  return dot > 0 ? name.slice(0, dot) + tag + name.slice(dot) : name + tag;
+}
+
+async function downloadRevision(fileId, revId, name, dateStr, btn){
+  lock(btn, "\u2026");
+  try {
+    const res = await gfetch(API + "/files/" + fileId + "/revisions/" + revId + "?alt=media");
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = taggedName(name, dateStr);
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+  } catch(e){ toast(e.message, true); }
+  finally { unlock(btn, "Download"); }
+}
+
+async function restoreVersion(deliverableId, fileId, revId, name, btn){
+  const d = state.deliverables.find(x => x.id === deliverableId);
+  if (!d) return;
+  if (Date.now() > new Date(d.deadline).getTime()){ toast("The update window has closed.", true); return; }
+  const rec = d.files.find(y => y.driveId === fileId);
+  if (!rec) return;
+  lock(btn, "Restoring\u2026");
+  try {
+    const res = await gfetch(API + "/files/" + fileId + "/revisions/" + revId + "?alt=media");
+    let blob = await res.blob();
+    if (!blob.type && rec.mimeType) blob = new Blob([blob], { type: rec.mimeType });
+    const f = await resumableUpload(
+      "PATCH",
+      UPLOAD + "/files/" + fileId + "?uploadType=resumable&fields=id,name,size,modifiedTime,webViewLink",
+      {},
+      blob
+    );
+    await keepLatestRevision(fileId);
+    rec.sizeBytes = Number(f.size || rec.sizeBytes);
+    rec.webViewLink = f.webViewLink || rec.webViewLink;
+    rec.lastUpdatedAt = f.modifiedTime;
+    rec.versions = (rec.versions || 1) + 1;
+    await saveState(); render();
+    toast("Restored that version as the current one.");
+  } catch(e){ toast(e.message, true); unlock(btn, "Restore"); }
 }
 
 function tick(){
@@ -536,6 +686,17 @@ document.addEventListener("click", (e) => {
   if (action === "add"){ pickFile(f => addFile(id, f, t)); }
   else if (action === "update"){ pickFile(f => updateFile(id, drive, f, t)); }
   else if (action === "download"){ downloadFile(drive, t.getAttribute("data-name"), t); }
+  else if (action === "versions"){
+    const d = state.deliverables.find(x => x.id === id);
+    const editable = d ? (computeState(d) === "pending" || computeState(d) === "submitted_open") : false;
+    toggleVersions(drive, t.getAttribute("data-name"), id, editable, t);
+  }
+  else if (action === "download-rev"){
+    downloadRevision(drive, t.getAttribute("data-rev"), t.getAttribute("data-name"), t.getAttribute("data-date"), t);
+  }
+  else if (action === "restore"){
+    restoreVersion(id, drive, t.getAttribute("data-rev"), t.getAttribute("data-name"), t);
+  }
 });
 
 function pickFile(cb){
@@ -548,6 +709,22 @@ function pickFile(cb){
 el("createBtn").addEventListener("click", createDeliverable);
 el("connectBtn").addEventListener("click", connect);
 el("connectBtn2").addEventListener("click", connect);
+
+el("newToggle").addEventListener("click", () => {
+  const nowHidden = el("newBody").classList.toggle("hidden");
+  el("newToggle").setAttribute("aria-expanded", nowHidden ? "false" : "true");
+});
+el("tabOpen").addEventListener("click", () => switchTab("open"));
+el("tabClosed").addEventListener("click", () => switchTab("closed"));
+function switchTab(which){
+  const isOpen = which === "open";
+  el("tabOpen").classList.toggle("active", isOpen);
+  el("tabClosed").classList.toggle("active", !isOpen);
+  el("tabOpen").setAttribute("aria-selected", isOpen ? "true" : "false");
+  el("tabClosed").setAttribute("aria-selected", !isOpen ? "true" : "false");
+  el("openList").classList.toggle("hidden", !isOpen);
+  el("closedList").classList.toggle("hidden", isOpen);
+}
 
 async function connect(){
   try {
